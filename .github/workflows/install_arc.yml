@@ -98,5 +98,6 @@ jobs:
       shell: bash
       run: |
         cd cicd/scripts
+        cp ${{ github.workspace }}/github_app_key.pem .
         chmod +x setup_arc.sh
         ./setup_arc.sh ${{ inputs.CLOUD_PROVIDER }}
