@@ -65,8 +65,6 @@ jobs:
           regionZone = ""
 
           checkRegion = "${{ inputs.REGION }}".match(/-[abc]$/)       
-          console.log(checkRegion)   
-          console.log(checkRegion[0])
           if(checkRegion){
             regionZone = "${{ inputs.REGION }}"
             regionName = "${{ inputs.REGION }}".replaceAll(checkRegion[0], "")
