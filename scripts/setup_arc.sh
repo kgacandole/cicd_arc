@@ -11,11 +11,6 @@ git_repo_name="github_arc"
 cloud_provider="$1"
 runner_label="kg-runner-${cloud_provider}"
 
-if [ -z "$GH_TOKEN" ]; then
-  echo "Error: Github Token not found."
-  exit 1
-fi
-
 # Add Helm Repos
 helm version || curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 helm repo add actions-runner-controller https://actions-runner-controller.github.io/actions-runner-controller
@@ -37,7 +32,7 @@ kubectl wait --for=condition=Available deployment --all -n "$cert_mgr_namespace"
 kubectl create namespace "$arc_namespace" || echo "Namespace exists"
 
 # Create Secret
-kubectl create secret generic "$secret_name" -n "$arc_namespace" --from-literal=github_token="$GH_TOKEN" || echo "Secrets already exist"
+kubectl create secret generic "$secret_name" -n "$arc_namespace" --from-literal=github_app_id="$GH_APP_ID" --from-literal=github_app_installation_id="$GH_INSTALLATION_ID" --from-literal=github_app_private_key=github_app_key.pem || echo "Secrets already exist"
 
 # Install ARC
 helm install arc -n "${arc_namespace}-systems" --create-namespace oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller

@@ -19,6 +19,7 @@ jobs:
       GH_APP_ID: ${{ secrets.GH_APP_ID }}
       GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
       OWNER_NAME: kgacandole
+      CLUSTER_NAME: "${{ vars.RESOURCE_PREFIX }}-cluster"
     steps:
     - name: Generate GH Token
       uses: kgacandole/github_automation_scripts/.github/actions/generateGithubToken@main
@@ -30,8 +31,7 @@ jobs:
           if(!(JSON.parse(JSON.stringify(${{ vars.VM_SIZE_MAP }})).hasOwnProperty("${{ inputs.REGION }}"))){
             core.setFailed("No resources provisioned for the region provided: ${{ inputs.REGION }}")
           }
-          
-    # Repo checkout
+
     - name: Checkout CICD Repository
       uses: actions/checkout@v4
       with:
@@ -39,13 +39,25 @@ jobs:
         ref: main
         path: cicd
 
-    # Pre-deploy steps
     - name: Setup up Google Cloud Auth
       if: inputs.CLOUD_PROVIDER == 'gcp'
       uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: "projects/${{ vars.GCP_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
         service_account: "${{ vars.SVC_ACCOUNT }}@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+
+    - name: Install GKE Auth Plugin
+      if: inputs.CLOUD_PROVIDER == 'gcp'
+      uses: "google-github-actions/setup-gcloud@v2"
+      with:
+        install_components: "gke-gcloud-auth-plugin"
+      
+    - name: Authenticate to GKE cluster
+      if: inputs.CLOUD_PROVIDER == 'gcp'
+      uses: google-github-actions/get-gke-credentials@v2
+      with:
+        cluster_name: ${{ env.CLUSTER_NAME }}
+        location: ${{ inputs.REGION }}
     
     - name: Setup Azure Auth
       if: inputs.CLOUD_PROVIDER == 'azure'
@@ -55,12 +67,19 @@ jobs:
         tenant-id: ${{ vars.AZURE_TENANT_ID }}
         subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}    
     
-    # Post Terraform Steps - Install/Setup ARC
-    - name: Install ARC
-      uses: kgacandole/cicd_arc/actions/install_arc@main
-      with:
-        cloudProvider: ${{ inputs.CLOUD_PROVIDER }}
-        clusterName: "${{ vars.RESOURCE_PREFIX }}-cluster"
-        regionName: ${{ inputs.REGION }}
-        resourceGroupName: "${{ vars.RESOURCE_PREFIX }}-aks-rg"
-        subscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    - name: Install Helm
+      if: inputs.CLOUD_PROVIDER == 'azure'
+      uses: azure/setup-helm@v4
+    
+    - name: Setup Github PEM
+      shell: bash
+      run: echo "${{ secrets.GH_APP_PRIVATE_KEY }}" > github_app_key.pem
+    
+    - name: Setup Arc - Azure
+      if: inputs.CLOUD_PROVIDER == 'azure'
+      shell: bash
+      env:
+        RESOURCE_GROUP_NAME: "${{ vars.RESOURCE_PREFIX }}-aks-rg"
+      run: |
+        az account set --subscription ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        az aks command invoke --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --name "${{ env.CLUSTER_NAME }}" --file "cicd/scripts/setup_arc.sh" --file "github_app_key.pem" --command "GH_APP_ID=${{ secrets.GH_APP_ID }} GH_INSTALLATION_ID=${{ secrets.GH_INSTALLATION_ID}} bash setup_arc.sh azure"
