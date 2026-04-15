@@ -9,7 +9,16 @@ inputs:
     type: string
   tfAction:
     description: 'TF Action'
-    type: string  
+    type: string
+  resourcePrefix:
+    description: 'Resource Prefix'
+    type: string
+  vmSizeMap:
+    description: 'VM Size Map'
+    type: string
+  projectId:
+    description: 'GCP Project Id'
+    type: string
 
 runs:
   using: "composite"
@@ -30,16 +39,16 @@ runs:
         
         core.setOutput("regionName", regionName)
         core.setOutput("regionZone", regionZone)
-        core.setOutput("vmSize", JSON.parse(JSON.stringify(${{ vars.VM_SIZE_MAP }}))[regionName])
+        core.setOutput("vmSize", JSON.parse(JSON.stringify(${{ inputs.vmSizeMap }}))[regionName])
         
   - name: Setup TF Vars
     shell: bash
     run: |
       cd iac/arc_infra/${{ inputs.cloudProvider }}
-      sed -i 's/{PREFIX}/${{ vars.RESOURCE_PREFIX }}/g' terraform.tfvars
+      sed -i 's/{PREFIX}/${{ inputs.resourcePrefix }}/g' terraform.tfvars
       sed -i 's/{REGION}/${{ steps.vars.outputs.regionName }}/g' terraform.tfvars
       sed -i 's/{REGION_ZONE}/${{ steps.vars.outputs.regionZone }}/g' terraform.tfvars
-      sed -i 's/{PROJECT_ID}/${{ vars.GCP_PROJECT_ID }}/g' terraform.tfvars
+      sed -i 's/{PROJECT_ID}/${{ inputs.projectId }}/g' terraform.tfvars
       sed -i 's/{VM_SIZE}/${{ steps.vars.outputs.vmSize }}/g' terraform.tfvars
       cat terraform.tfvars
 

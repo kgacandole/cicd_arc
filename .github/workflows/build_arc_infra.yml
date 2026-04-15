@@ -72,3 +72,6 @@ jobs:
       with:
         cloudProvider: ${{ inputs.CLOUD_PROVIDER }}
         tfAction: ${{ inputs.ACTION }}
+        resourcePrefix: ${{ vars.RESOURCE_PREFIX }}
+        vmSizeMap: ${{ vars.VM_SIZE_MAP }}
+        projectId: ${{ vars.GCP_PROJECT_ID }}
