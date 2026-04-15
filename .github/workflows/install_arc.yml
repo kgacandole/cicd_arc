@@ -12,10 +12,13 @@ on:
       REGION:
         description: "Region (Location)"
         type: string
+      RUN_INSTALL_ARC:
+        description: "Install ARC"
+        type: string
 
 jobs:
-  build_infra:
-    name: Build Infrastructure
+  install_arc:
+    name: Install Arc
     runs-on: [ubuntu-latest]
     environment: ${{ inputs.CLOUD_PROVIDER }}
     env:
@@ -28,13 +31,6 @@ jobs:
         repository: kgacandole/cicd_arc
         ref: main
         path: cicd
-    
-    - name: Checkout Terraform Repository
-      uses: actions/checkout@v4
-      with:
-        repository: kgacandole/iac_terraform
-        ref: main
-        path: iac
 
     # Pre-deploy steps
     - name: Setup up Google Cloud Auth
@@ -50,21 +46,14 @@ jobs:
       with:
         client-id: ${{ vars.AZURE_CLIENT_ID }}
         tenant-id: ${{ vars.AZURE_TENANT_ID }}
-        subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}    
     
-    # Run Terraform
-    - name: Run Terraform
-      if: inputs.ACTION != 'skip'
-      uses: kgacandole/cicd_arc/actions/run_terraform@main
-      env:
-        TERRAFORM_VERSION: ${{ vars.TERRAFORM_VERSION }}
-        ARM_USE_OIDC: true
-        ARM_USE_CLI: false
-        ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-        ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-        ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-        STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME_TFSTATE }}
-        RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP_TFSTATE }}                
+    # Post Terraform Steps - Install/Setup ARC
+    - name: Install ARC
+      uses: kgacandole/cicd_arc/actions/install_arc@main
       with:
         cloudProvider: ${{ inputs.CLOUD_PROVIDER }}
-        tfAction: ${{ inputs.ACTION }}
+        clusterName: "${{ vars.RESOURCE_PREFIX }}-cluster"
+        regionName: ${{ inputs.REGION }}
+        resourceGroupName: "${{ vars.RESOURCE_PREFIX }}-aks-rg"
+        subscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
