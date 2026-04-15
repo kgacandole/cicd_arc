@@ -26,12 +26,20 @@ jobs:
       uses: kgacandole/github_automation_scripts/.github/actions/generateGithubToken@main
 
     - name: Validate Inputs
+      id: vars
       uses: actions/github-script@v7
       with:
         script: |
-          if(!(JSON.parse(JSON.stringify(${{ vars.VM_SIZE_MAP }})).hasOwnProperty("${{ inputs.REGION }}"))){
-            core.setFailed("No resources provisioned for the region provided: ${{ inputs.REGION }}")
+          regionName = "${{ inputs.REGION }}"
+          checkRegion = "${{ inputs.REGION }}".match(/-[abc]$/)    
+          if(checkRegion){
+            regionZone = "${{ inputs.REGION }}"
+            regionName = "${{ inputs.REGION }}".replaceAll(checkRegion[0], "")
           }
+          if(!(JSON.parse(JSON.stringify(${{ vars.VM_SIZE_MAP }})).hasOwnProperty(regionName))){
+            core.setFailed("No resources provisioned for the region provided: " + regionName)
+          }
+          core.setOutput("regionZone", regionZone)
 
     - name: Checkout CICD Repository
       uses: actions/checkout@v4
@@ -39,6 +47,10 @@ jobs:
         repository: kgacandole/cicd_arc
         ref: main
         path: cicd
+    
+    - name: Setup Github PEM
+      shell: bash
+      run: printf '%s\n' "${{ env.GH_APP_PRIVATE_KEY }}" > github_app_key.pem
 
     - name: Setup up Google Cloud Auth
       if: inputs.CLOUD_PROVIDER == 'gcp'
@@ -58,7 +70,7 @@ jobs:
       uses: google-github-actions/get-gke-credentials@v2
       with:
         cluster_name: ${{ env.CLUSTER_NAME }}
-        location: ${{ inputs.REGION }}
+        location: ${{ steps.vars.outputs.regionZone }}
     
     - name: Setup Azure Auth
       if: inputs.CLOUD_PROVIDER == 'azure'
@@ -72,11 +84,7 @@ jobs:
       if: inputs.CLOUD_PROVIDER == 'azure'
       uses: azure/setup-helm@v4
     
-    - name: Setup Github PEM
-      shell: bash
-      run: printf '%s\n' "${{ env.GH_APP_PRIVATE_KEY }}" > github_app_key.pem
-    
-    - name: Setup Arc - Azure
+    - name: Install Arc - Azure
       if: inputs.CLOUD_PROVIDER == 'azure'
       shell: bash
       env:
@@ -84,3 +92,11 @@ jobs:
       run: |
         az account set --subscription ${{ vars.AZURE_SUBSCRIPTION_ID }}
         az aks command invoke --resource-group "${{ env.RESOURCE_GROUP_NAME }}" --name "${{ env.CLUSTER_NAME }}" --file "cicd/scripts/setup_arc.sh" --file "github_app_key.pem" --command "GH_APP_ID=${{ env.GH_APP_ID }} GH_INSTALLATION_ID=${{ env.GH_INSTALLATION_ID}} bash setup_arc.sh azure"
+    
+    - name: Install Arc - ${{ inputs.CLOUD_PROVIDER }}
+      if: inputs.CLOUD_PROVIDER != 'azure'
+      shell: bash
+      run: |
+        cd cicd/scripts
+        chmod +x setup_arc.sh
+        ./setup_arc.sh ${{ inputs.CLOUD_PROVIDER }}
