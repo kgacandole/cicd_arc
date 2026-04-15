@@ -42,7 +42,7 @@ runs:
       echo "TF_VAR_gh_token=${{ env.GH_TOKEN }}" >> $GITHUB_ENV
       
       # Execute TF Modules
-      cd terraform/${{ inputs.cloudProvider }}
+      cd iac/arc_infra/${{ inputs.cloudProvider }}
       terraform init
       terraform plan
       if [[ "${{ inputs.tfAction }}" == "apply" ]]; then
