@@ -1,0 +1,52 @@
+name: Run Terraform
+description: 'Run Terraform'
+inputs:  
+  cloudProvider:
+    description: 'Cloud Provider'
+    type: string
+  tfAction:
+    description: 'TF Action'
+    type: string  
+
+runs:
+  using: "composite"
+  steps:
+  - name: Get Runner IP
+    if: inputs.cloudProvider == 'azure'
+    shell: bash
+    run: |
+      IP=$(curl -sL https://api.ipify.org)
+      echo "RUNNER_IP=$IP" >> $GITHUB_ENV
+  
+  - name: Whitelist Runner IP
+    if: inputs.cloudProvider == 'azure'
+    uses: azure/CLI@v1
+    with:
+      inlineScript: |
+        echo "Whitelisting Runner IP"
+        az storage account update --name ${{ env.STORAGE_ACCOUNT_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --public-network-access Enabled
+        az storage account network-rule add --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --ip-address ${{ env.RUNNER_IP }}
+        echo "Propagating whitelisting..."
+        sleep 30
+    
+    # Terraform Steps
+  - name: Setup Terraform
+    uses: hashicorp/setup-terraform@v3
+    with:
+      terraform_version: ${{ env.TERRAFORM_VERSION }}
+  
+  - name: Export GH Token
+    shell: bash
+    run: |
+      # Export Token for TF Vars
+      echo "TF_VAR_gh_token=${{ env.GH_TOKEN }}" >> $GITHUB_ENV
+      
+      # Execute TF Modules
+      cd terraform/${{ inputs.cloudProvider }}
+      terraform init
+      terraform plan
+      if [[ "${{ inputs.tfAction }}" == "apply" ]]; then
+        terraform apply -auto-approve
+      elif [[ "${{ inputs.tfAction }}" == "destroy" ]]; then
+        terraform destroy -auto-approve
+      fi

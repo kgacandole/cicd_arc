@@ -1,0 +1,90 @@
+name: Build Arc Infra
+run-name: build arc infra - ${{ github.event.inputs.CLOUD_PROVIDER }} - ${{ github.event.inputs.ACTION }}
+on:
+  workflow_dispatch:
+    inputs:
+      ACTION:
+        description: "Action"
+        type: choice
+        options:
+        - plan
+        - apply
+        - destroy
+        - skip
+      CLOUD_PROVIDER:
+        description: "Cloud Provider"
+        type: choice
+        options:
+        - gcp
+        - azure
+        - aws
+      REGION:
+        description: "Region (Location)"
+        type: string
+        # us-central1-a - gcp
+      RUN_INSTALL_ARC:
+        description: "Install ARC"
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write
+  contents: read
+  
+jobs:
+  build_infra:
+    name: Build Infrastructure
+    runs-on: [ubuntu-latest]
+    environment: ${{ github.event.inputs.CLOUD_PROVIDER }}
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+    # Repo checkout
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref_name }}
+
+    # Pre-deploy steps
+    - name: Setup up Google Cloud Auth
+      if: github.event.inputs.CLOUD_PROVIDER == 'gcp'
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: "projects/${{ vars.GCP_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+        service_account: "${{ vars.SVC_ACCOUNT }}@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+    
+    - name: Setup Azure Auth
+      if: github.event.inputs.CLOUD_PROVIDER == 'azure'
+      uses: azure/login@v2
+      with:
+        client-id: ${{ vars.AZURE_CLIENT_ID }}
+        tenant-id: ${{ vars.AZURE_TENANT_ID }}
+        subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    
+    # Run Terraform
+    - name: Run Terraform
+      if: github.event.inputs.ACTION != 'skip'
+      uses: kgacandole/github_arc/actions/run_terraform@main
+      env:
+        TERRAFORM_VERSION: ${{ vars.TERRAFORM_VERSION }}
+        ARM_USE_OIDC: true
+        ARM_USE_CLI: false
+        ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+        ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        STORAGE_ACCOUNT_NAME: ${{ vars.STORAGE_ACCOUNT_NAME_TFSTATE }}
+        RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP_TFSTATE }}                
+      with:
+        cloudProvider: ${{ github.event.inputs.CLOUD_PROVIDER }}
+        tfAction: ${{ github.event.inputs.ACTION }}
+    
+    # Post Terraform Steps - Install/Setup ARC
+    - name: Install ARC
+      if: github.event.inputs.RUN_INSTALL_ARC == 'true' && github.event.inputs.ACTION != 'destroy'
+      uses: kgacandole/github_arc/actions/install_arc@main
+      with:
+        cloudProvider: ${{ github.event.inputs.CLOUD_PROVIDER }}
+        clusterName: ${{ vars.CLUSTER_NAME }}
+        regionName: ${{ inputs.REGION }}
+        resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+        subscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
