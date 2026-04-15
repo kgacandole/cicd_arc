@@ -69,7 +69,7 @@ runs:
   
   - name: Export Token as TF Var
     shell: bash
-    run: echo "TF_VAR_gh_token=${{ env.GH_TOKEN }}" >> $GITHUB_ENV
+    run: echo "TF_VAR_gh_token=${{ env.GITHUB_TOKEN }}" >> $GITHUB_ENV
   
   - name: Export GH Token
     shell: bash
