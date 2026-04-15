@@ -110,5 +110,5 @@ jobs:
         cloudProvider: ${{ inputs.CLOUD_PROVIDER }}
         clusterName: "${{ vars.RESOURCE_PREFIX }}-cluster"
         regionName: ${{ inputs.REGION }}
-        resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+        resourceGroupName: "${{ vars.RESOURCE_PREFIX }}-aks-rg"
         subscriptionId: ${{ vars.AZURE_SUBSCRIPTION_ID }}
