@@ -35,13 +35,13 @@ runs:
     with:
       terraform_version: ${{ env.TERRAFORM_VERSION }}
   
+  - name: Export Token as TF Var
+    shell: bash
+    run: echo "TF_VAR_gh_token=${{ env.GH_TOKEN }}" >> $GITHUB_ENV
+  
   - name: Export GH Token
     shell: bash
     run: |
-      # Export Token for TF Vars
-      echo "TF_VAR_gh_token=${{ env.GH_TOKEN }}" >> $GITHUB_ENV
-      
-      # Execute TF Modules
       cd iac/arc_infra/${{ inputs.cloudProvider }}
       terraform init
       terraform plan
