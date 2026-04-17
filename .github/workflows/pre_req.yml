@@ -40,4 +40,4 @@ jobs:
         cd cicd/scripts/bash
         ls -l
         chmod ugo+rwx setup_prereq_gcp.sh
-        ./setup_prereq_gcp.sh "${{ vars.GCP_PROJECT_ID }}" "${{ vars.GCP_PROJECT_NUM }}"
+        ./setup_prereq_gcp.sh "${{ vars.GCP_PROJECT_ID }}" "${{ vars.GCP_PROJECT_NUM }}" "${{ inputs.REGION }}"
