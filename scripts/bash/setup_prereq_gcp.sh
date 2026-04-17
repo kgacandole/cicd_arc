@@ -20,18 +20,18 @@ gcloud storage buckets create "gs://${tfstate_bucket_name}" \
     --uniform-bucket-level-access
 
 # Create workload identity pool
-gcloud iam workload-identity-pools create "$identity_pool_name" \
-    --location="global" \
-    --description="Pool for GitHub Actions" \
-    --display-name="Pool for GitHub Actions"
+# gcloud iam workload-identity-pools create "$identity_pool_name" \
+#     --location="global" \
+#     --description="Pool for GitHub Actions" \
+#     --display-name="Pool for GitHub Actions"
 
-# Add provider
-gcloud iam workload-identity-pools providers create-oidc "gh-provider" \
-    --location="global" \
-    --workload-identity-pool="$identity_pool_name" \
-    --issuer-uri="https://token.actions.githubusercontent.com" \
-    --attribute-mapping="google.subject=assertion.sub,attribute.repository_owner=assertion.repository_owner" \
-    --attribute-condition="assertion.repository_owner == '$org_name'"
+# # Add provider
+# gcloud iam workload-identity-pools providers create-oidc "gh-provider" \
+#     --location="global" \
+#     --workload-identity-pool="$identity_pool_name" \
+#     --issuer-uri="https://token.actions.githubusercontent.com" \
+#     --attribute-mapping="google.subject=assertion.sub,attribute.repository_owner=assertion.repository_owner" \
+#     --attribute-condition="assertion.repository_owner == '$org_name'"
 
 # Create service account for Terraform
 gcloud iam service-accounts create "$svc_account_name_tf" --display-name="Service Account for Terraform"
