@@ -67,4 +67,4 @@ jobs:
         inlineScript: |
           cd cicd/scripts/bash
           chmod ugo+rwx setup_prereq_azure.sh
-          ./setup_prereq_azure.sh "${{ inputs.REGION }}"
+          ./setup_prereq_azure.sh "${{ inputs.REGION }}" "${{ vars.AZURE_SUBSCRIPTION_ID }}"
