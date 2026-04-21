@@ -36,6 +36,12 @@ full_svc_account_id_compute="${svc_account_name_compute}@${projectId}.iam.gservi
 # gcloud projects add-iam-policy-binding <project_id> --member="serviceAccount:<devops_svc_account>@<project_id>.iam.gserviceaccount.com" --role="roles/resourcemanager.projectIamAdmin" --condition=None
 ## ----------------------------------------------------------------- ##
 
+echo "Check Identity Pool.."
+gcloud iam workload-identity-pools providers update-oidc gh-identity-provider \
+    --workload-identity-pool="$identity_pool_name" \
+    --location="global" \
+    --attribute-mapping="google.subject=assertion.sub,attribute.repository_owner=assertion.repository_owner"
+
 echo "Create Bucket for state file.."
 gcloud storage buckets describe "gs://${tfstate_bucket_name}" || gcloud storage buckets create "gs://${tfstate_bucket_name}" \
     --location="${region^^}" \
