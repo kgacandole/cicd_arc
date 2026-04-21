@@ -17,6 +17,9 @@ set -e
 # done
 
 region="$1"
+subscriptionId="$2"
+appClientId="$3"
+
 resourceGroup="arc_tfstate_rg"
 storageAccount="arcstorageacct"
 storageContainer="arc-tfstate-container"
@@ -29,3 +32,7 @@ az storage account create --name "$storageAccount" --resource-group "$resourceGr
 
 echo "Create container on the Storage Account.."
 az storage container create --name "$storageContainer" --account-name "$storageAccount" --auth-mode login
+
+echo "Granting access to the Storage Account.."
+servicePrincipalId=$(az ad sp show --id "$appClientId" --query id -o tsv)
+az role assignment create --assignee-object-id "$servicePrincipalId" --assignee-principal-type ServicePrincipal --role "Storage Blob Data Contributor" --scope "/subscriptions/${subscriptionId}/resourceGroups/${resourceGroup}/providers/Microsoft.Storage/storageAccounts/${storageAccount}"
