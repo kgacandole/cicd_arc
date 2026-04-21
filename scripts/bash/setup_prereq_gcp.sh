@@ -62,7 +62,7 @@ gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --r
 gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/iam.serviceAccountUser"
 
 echo "Adding Project-level bindings on TF Svc Account.."
-gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/container.admin" --condition=None
+gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/container.admin" --condition=None --verbosity=debug
 
 gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/compute.viewer"
 
