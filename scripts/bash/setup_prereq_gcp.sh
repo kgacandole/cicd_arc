@@ -62,16 +62,9 @@ gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --r
 gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/iam.serviceAccountUser"
 
 echo "Adding Project-level bindings on TF Svc Account.."
+gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/container.admin" --condition=None
 
-gcloud auth list
-
-gcloud projects get-iam-policy "$projectId" \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:serviceAccount:devops-svc-account@project-235e2136-7c2e-4409-bad.iam.gserviceaccount.com"
-
-gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/container.admin" --condition=None --verbosity=debug
-
-gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/compute.viewer"
+gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/compute.viewer" --condition=None
 
 echo "Adding project-level bindings on Kube Nodes Svc Account.."
-gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_compute}" --role="roles/container.defaultNodeServiceAccount"
+gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_compute}" --role="roles/container.defaultNodeServiceAccount" --condition=None
