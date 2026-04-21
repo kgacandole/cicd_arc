@@ -54,7 +54,7 @@ echo "Adding IAM bindings on TF Svc Account and Identity Pool.."
 identityPoolRoles="iam.workloadIdentityUser,iam.serviceAccountTokenCreator"
 IFS="," read -ra POOLROLE <<< "$identityPoolRoles"
 for idrole in "${POOLROLE[@]}"; do
-  gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="principalSet://iam.googleapis.com/projects/${projectNum}/locations/global/workloadIdentityPools/${identity_pool_name}/attribute.repository_owner/${org_name}" --role="roles/${idrole}"
+  gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="principalSet://iam.googleapis.com/projects/${projectNum}/locations/global/workloadIdentityPools/${identity_pool_name}/attribute.repository/${org_name}/github_arc" --role="roles/${idrole}"
 done
 # Adding service account user role
 gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/iam.serviceAccountUser"
