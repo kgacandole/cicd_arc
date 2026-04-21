@@ -50,29 +50,20 @@ gcloud iam service-accounts describe "$full_svc_account_id_compute" || gcloud ia
 echo "Updating policy on TF State Bucket.."
 gcloud storage buckets add-iam-policy-binding "gs://${tfstate_bucket_name}" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/storage.admin"
 
-echo "Adding IAM bindings on TF Svc Account.."
-
-# Allowing Github OIDC to act as TF Svc Account
-gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/projects/${projectNum}/locations/global/workloadIdentityPools/${identity_pool_name}/attribute.repository_owner/${org_name}"
-
-# Allowing Terraform to request access tokens (needed by provider)
-gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --role="roles/iam.serviceAccountTokenCreator" --member="principalSet://iam.googleapis.com/projects/${projectNum}/locations/global/workloadIdentityPools/${identity_pool_name}/attribute.repository_owner/${org_name}"
-
+echo "Adding IAM bindings on TF Svc Account and Identity Pool.."
+identityPoolRoles="iam.workloadIdentityUser,iam.serviceAccountTokenCreator"
+IFS="," read -ra POOLROLE <<< "$identityPoolRoles"
+for idrole in "${POOLROLE[@]}"; do
+  gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="principalSet://iam.googleapis.com/projects/${projectNum}/locations/global/workloadIdentityPools/${identity_pool_name}/attribute.repository_owner/${org_name}" --role="roles/${idrole}"
+done
 # Adding service account user role
 gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/iam.serviceAccountUser"
 
 echo "Adding Project-level bindings on TF Svc Account.."
-projLevelRoles="artifactregistry.reader,compute.networkAdmin,compute.securityAdmin,compute.viewer,container.admin,iam.securityReviewer,iam.serviceAccountAdmin,storage.admin,iam.workloadIdentityPoolAdmin,resourcemanager.projectIamAdmin"
+projLevelRoles="artifactregistry.reader,compute.networkAdmin,compute.securityAdmin,compute.viewer,container.admin,iam.securityReviewer,iam.serviceAccountAdmin,storage.admin"
 IFS="," read -ra PROJROLE <<< "$projLevelRoles"
 for prole in "${PROJROLE[@]}"; do
   gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/${prole}" --condition=None
 done
-
 echo "Adding project-level bindings on Kube Nodes Svc Account.."
 gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_compute}" --role="roles/container.defaultNodeServiceAccount" --condition=None
-
-echo "Check Identity Pool.."
-gcloud iam workload-identity-pools providers describe "gh-identity-provider" \
-  --workload-identity-pool="$identity_pool_name" \
-  --location="global" \
-  --format="yaml(attributeMapping)"
