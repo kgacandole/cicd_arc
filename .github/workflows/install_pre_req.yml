@@ -11,7 +11,7 @@ on:
         type: string
 
 jobs:
-  install_arc_gcp:
+  install_prereq_gcp:
     name: Install Arc - GCP
     if: inputs.CLOUD_PROVIDER == 'gcp'
     runs-on: [ubuntu-latest]
@@ -39,3 +39,32 @@ jobs:
         cd cicd/scripts/bash
         chmod ugo+rwx setup_prereq_gcp.sh
         ./setup_prereq_gcp.sh "${{ vars.GCP_PROJECT_ID }}" "${{ vars.GCP_PROJECT_NUM }}" "${{ inputs.REGION }}"
+  
+  install_prereq_azure:
+    name: Install Arc - Azure
+    if: inputs.CLOUD_PROVIDER == 'azure'
+    runs-on: [ubuntu-latest]
+    environment: ${{ inputs.CLOUD_PROVIDER }}
+    steps:
+    - name: Checkout CICD Repository
+      uses: actions/checkout@v4
+      with:
+        repository: kgacdevops/cicd_arc
+        ref: main
+        path: cicd
+
+    - name: Setup Azure Auth
+      uses: azure/login@v2
+      with:
+        client-id: ${{ vars.AZURE_CLIENT_ID }}
+        tenant-id: ${{ vars.AZURE_TENANT_ID }}
+        subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    
+    - name: Setup Pre-Requisites
+      uses: azure/cli@v2
+      with:
+        azcliversion: latest
+        inlineScript: |
+          cd cicd/scripts/bash
+          chmod ugo+rwx setup_prereq_azure.sh
+          ./setup_prereq_azure.sh "${{ inputs.REGION }}"
