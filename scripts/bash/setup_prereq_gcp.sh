@@ -36,12 +36,6 @@ full_svc_account_id_compute="${svc_account_name_compute}@${projectId}.iam.gservi
 # gcloud projects add-iam-policy-binding <project_id> --member="serviceAccount:<devops_svc_account>@<project_id>.iam.gserviceaccount.com" --role="roles/resourcemanager.projectIamAdmin" --condition=None
 ## ----------------------------------------------------------------- ##
 
-echo "Check Identity Pool.."
-gcloud iam workload-identity-pools providers describe "gh-identity-provider" \
-  --workload-identity-pool="$identity_pool_name" \
-  --location="global" \
-  --format="yaml(attributeMapping)"
-
 echo "Create Bucket for state file.."
 gcloud storage buckets describe "gs://${tfstate_bucket_name}" || gcloud storage buckets create "gs://${tfstate_bucket_name}" \
     --location="${region^^}" \
@@ -68,7 +62,7 @@ gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --r
 gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/iam.serviceAccountUser"
 
 echo "Adding Project-level bindings on TF Svc Account.."
-projLevelRoles="artifactregistry.reader,compute.networkAdmin,compute.securityAdmin,compute.viewer,container.admin,iam.securityReviewer,iam.serviceAccountAdmin,storage.admin"
+projLevelRoles="artifactregistry.reader,compute.networkAdmin,compute.securityAdmin,compute.viewer,container.admin,iam.securityReviewer,iam.serviceAccountAdmin,storage.admin,iam.workloadIdentityPoolAdmin,resourcemanager.projectIamAdmin"
 IFS="," read -ra PROJROLE <<< "$projLevelRoles"
 for prole in "${PROJROLE[@]}"; do
   gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/${prole}" --condition=None
@@ -76,3 +70,9 @@ done
 
 echo "Adding project-level bindings on Kube Nodes Svc Account.."
 gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_compute}" --role="roles/container.defaultNodeServiceAccount" --condition=None
+
+echo "Check Identity Pool.."
+gcloud iam workload-identity-pools providers describe "gh-identity-provider" \
+  --workload-identity-pool="$identity_pool_name" \
+  --location="global" \
+  --format="yaml(attributeMapping)"
