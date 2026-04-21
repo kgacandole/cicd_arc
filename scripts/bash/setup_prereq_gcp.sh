@@ -65,7 +65,9 @@ echo "Adding Project-level bindings on TF Svc Account.."
 
 gcloud auth list
 
-gcloud iam deny-policies list --resource="projects/${projectId}"
+gcloud projects get-iam-policy "$projectId" \
+  --flatten="bindings[].members" \
+  --filter="bindings.members:serviceAccount:devops-svc-account@project-235e2136-7c2e-4409-bad.iam.gserviceaccount.com"
 
 gcloud projects add-iam-policy-binding "$projectId" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/container.admin" --condition=None --verbosity=debug
 
