@@ -41,11 +41,13 @@ gcloud storage buckets describe "gs://${tfstate_bucket_name}" || gcloud storage 
     --location="${region^^}" \
     --uniform-bucket-level-access
 
-echo "Creating Service Account for Terraform"
-gcloud iam service-accounts describe "$full_svc_account_id_tf" || gcloud iam service-accounts create "$svc_account_name_tf" --display-name="Service Account for Terraform"
-
-echo "Creating Service Account for Kubernetes Nodes.."
-gcloud iam service-accounts describe "$full_svc_account_id_compute" || gcloud iam service-accounts create "$svc_account_name_compute" --display-name="Service Account for Kube Cluster/Compute resources"
+echo "Creating Service Accounts.."
+serviceAccountsList="$svc_account_name_tf,$svc_account_name_compute"
+IFS="," read -ra SVCACCOUNTS <<< "$serviceAccountsList"
+for sa in "${SVCACCOUNTS[@]}"; do
+  gcloud iam service-accounts describe "${sa}@${projectId}.iam.gserviceaccount.com" || gcloud iam service-accounts create "$sa" --display-name="Terrform managed SA"
+  gcloud iam service-accounts add-iam-policy-binding "${sa}@${projectId}.iam.gserviceaccount.com" --member="serviceAccount:"${sa}@${projectId}.iam.gserviceaccount.com"" --role="roles/iam.serviceAccountUser"
+done
 
 echo "Updating policy on TF State Bucket.."
 gcloud storage buckets add-iam-policy-binding "gs://${tfstate_bucket_name}" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/storage.admin"
@@ -56,8 +58,6 @@ IFS="," read -ra POOLROLE <<< "$identityPoolRoles"
 for idrole in "${POOLROLE[@]}"; do
   gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="principalSet://iam.googleapis.com/projects/${projectNum}/locations/global/workloadIdentityPools/${identity_pool_name}/attribute.repository/${org_name}/github_arc" --role="roles/${idrole}"
 done
-# Adding service account user role
-gcloud iam service-accounts add-iam-policy-binding "$full_svc_account_id_tf" --member="serviceAccount:${full_svc_account_id_tf}" --role="roles/iam.serviceAccountUser"
 
 echo "Adding Project-level bindings on TF Svc Account.."
 projLevelRoles="artifactregistry.reader,compute.networkAdmin,compute.securityAdmin,compute.viewer,container.admin,iam.securityReviewer,iam.serviceAccountAdmin,storage.admin"
