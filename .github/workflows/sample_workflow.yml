@@ -6,7 +6,7 @@ on:
 jobs:
   init:
     name: Initialize
-    runs-on: [kg-runner-azure]
+    runs-on: [kg-runner-azure-all]
     steps:
     - name: Test Runner
       run: echo "Hello world!"
