@@ -1,0 +1,12 @@
+name: Test Workflow
+run-name: Test workflow
+on:
+  workflow_dispatch
+
+jobs:
+  init:
+    name: Initialize
+    runs-on: [kg-runner-azure]
+    steps:
+    - name: Test Runner
+      run: echo "Hello world!"
