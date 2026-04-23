@@ -89,7 +89,6 @@ runs:
       sed -i 's/{GH_APP_ID}/${{ env.GH_APP_ID }}/g' terraform.tfvars
       sed -i 's/{GH_INSTALLATION_ID}/${{ env.GH_INSTALLATION_ID }}/g' terraform.tfvars
       sed -i 's/{GH_OWNER}/${{ env.OWNER_NAME }}/g' terraform.tfvars
-      sed -i 's/{RUNNER_IP}/${{ env.RUNNER_IP }}/g' terraform.tfvars
       cat terraform.tfvars
 
       sed -i 's/{TFSTATE_BUCKET_NAME}/${{ inputs.tfStateBucket }}/g' backend.tf
@@ -114,9 +113,10 @@ runs:
       printf '%s\n' "${{ env.GH_APP_PRIVATE_KEY }}" > github_app_key.pem
 
       terraform init
-      #terraform plan
+      terraform state rm module.install_arc
+      terraform plan
       if [[ "${{ inputs.tfAction }}" == "apply" ]]; then
         terraform apply -auto-approve
       elif [[ "${{ inputs.tfAction }}" == "destroy" ]]; then
-        terraform destroy -auto-approve -refresh=false
+        terraform destroy -auto-approve
       fi
