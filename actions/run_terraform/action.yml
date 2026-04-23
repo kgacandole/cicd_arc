@@ -55,28 +55,7 @@ runs:
         core.setOutput("regionName", regionName)
         core.setOutput("regionZone", regionZone)
         core.setOutput("vmSize", JSON.parse(JSON.stringify(${{ inputs.vmSizeMap }}))[regionName])
-        
-  - name: Setup TF Vars
-    shell: bash
-    run: |
-      cd iac/arc_infra/${{ inputs.cloudProvider }}
-      sed -i 's/{PREFIX}/${{ inputs.resourcePrefix }}/g' terraform.tfvars
-      sed -i 's/{REGION}/${{ steps.vars.outputs.regionName }}/g' terraform.tfvars
-      sed -i 's/{REGION_ZONE}/${{ steps.vars.outputs.regionZone }}/g' terraform.tfvars
-      sed -i 's/{PROJECT_ID}/${{ inputs.projectId }}/g' terraform.tfvars
-      sed -i 's/{VM_SIZE}/${{ steps.vars.outputs.vmSize }}/g' terraform.tfvars
-      sed -i 's/{TF_SVC_ACCOUNT}/${{ inputs.tfServiceAccount }}/g' terraform.tfvars
-      sed -i 's/{NODES_SVC_ACCOUNT}/${{ inputs.nodesServiceAccount }}/g' terraform.tfvars
-      sed -i 's/{GH_APP_ID}/${{ env.GH_APP_ID }}/g' terraform.tfvars
-      sed -i 's/{GH_INSTALLATION_ID}/${{ env.GH_INSTALLATION_ID }}/g' terraform.tfvars
-      sed -i 's/{GH_OWNER}/${{ env.OWNER_NAME }}/g' terraform.tfvars
-      cat terraform.tfvars
-
-      sed -i 's/{TFSTATE_BUCKET_NAME}/${{ inputs.tfStateBucket }}/g' backend.tf
-      sed -i 's/{TFSTATE_RG_NAME}/${{ inputs.tfStateRg }}/g' backend.tf
-      sed -i 's/{TFSTATE_STORAGE_ACCT}/${{ inputs.tfStateStorageAccount }}/g' backend.tf
-      cat backend.tf
-
+  
   - name: Get Runner IP
     if: inputs.cloudProvider == 'azure'
     shell: bash
@@ -95,6 +74,28 @@ runs:
         az storage account network-rule add --account-name ${{ env.STORAGE_ACCOUNT_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --ip-address ${{ env.RUNNER_IP }}
         echo "Propagating whitelisting..."
         sleep 30
+        
+  - name: Setup TF Vars
+    shell: bash
+    run: |
+      cd iac/arc_infra/${{ inputs.cloudProvider }}
+      sed -i 's/{PREFIX}/${{ inputs.resourcePrefix }}/g' terraform.tfvars
+      sed -i 's/{REGION}/${{ steps.vars.outputs.regionName }}/g' terraform.tfvars
+      sed -i 's/{REGION_ZONE}/${{ steps.vars.outputs.regionZone }}/g' terraform.tfvars
+      sed -i 's/{PROJECT_ID}/${{ inputs.projectId }}/g' terraform.tfvars
+      sed -i 's/{VM_SIZE}/${{ steps.vars.outputs.vmSize }}/g' terraform.tfvars
+      sed -i 's/{TF_SVC_ACCOUNT}/${{ inputs.tfServiceAccount }}/g' terraform.tfvars
+      sed -i 's/{NODES_SVC_ACCOUNT}/${{ inputs.nodesServiceAccount }}/g' terraform.tfvars
+      sed -i 's/{GH_APP_ID}/${{ env.GH_APP_ID }}/g' terraform.tfvars
+      sed -i 's/{GH_INSTALLATION_ID}/${{ env.GH_INSTALLATION_ID }}/g' terraform.tfvars
+      sed -i 's/{GH_OWNER}/${{ env.OWNER_NAME }}/g' terraform.tfvars
+      sed -i 's/{RUNNER_IP}/${{ env.RUNNER_IP }}/g' terraform.tfvars
+      cat terraform.tfvars
+
+      sed -i 's/{TFSTATE_BUCKET_NAME}/${{ inputs.tfStateBucket }}/g' backend.tf
+      sed -i 's/{TFSTATE_RG_NAME}/${{ inputs.tfStateRg }}/g' backend.tf
+      sed -i 's/{TFSTATE_STORAGE_ACCT}/${{ inputs.tfStateStorageAccount }}/g' backend.tf
+      cat backend.tf
 
   # Terraform Steps
   - name: Setup Terraform
