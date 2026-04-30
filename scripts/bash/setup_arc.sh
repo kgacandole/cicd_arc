@@ -21,7 +21,7 @@ helm repo update
 echo "Installing Cert-Manager..."
 kubectl create namespace "$cert_mgr_namespace" || echo "Namespace exists"
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${cert_mgr_ver}/cert-manager.crds.yaml 
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${cert_mgr_ver}/cert-manager.yaml 
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/${cert_mgr_ver}/cert-manager.yaml --request-timeout=300s
 sleep 30s
 
 # Wait for Cert-Manager pods to be ready
@@ -35,7 +35,7 @@ kubectl create namespace "$arc_namespace" || echo "Namespace exists"
 kubectl create secret generic "$secret_name" -n "$arc_namespace" --from-literal=github_app_id="$GH_APP_ID" --from-literal=github_app_installation_id="$GH_INSTALLATION_ID" --from-file=github_app_private_key=github_app_key.pem || echo "Secrets already exist"
 
 # Install ARC
-helm install arc -n "${arc_namespace}-systems" --create-namespace oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller
+helm install arc -n "${arc_namespace}-systems" --create-namespace --timeout 600s --disable-openapi-validation oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller
 
 # Install Runners
-helm install "$runner_label" -n "$arc_namespace" --create-namespace --set githubConfigUrl="https://github.com/${git_owner_name}" --set githubConfigSecret="$secret_name" oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set --set minRunners=3 --set maxRunners=5 --set runnerScaleSetLabels[0]="$cloud_provider"
+helm install "$runner_label" -n "$arc_namespace" --create-namespace --timeout 600s --disable-openapi-validation --set githubConfigUrl="https://github.com/${git_owner_name}" --set githubConfigSecret="$secret_name" oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set --set minRunners=3 --set maxRunners=5 --set runnerScaleSetLabels[0]="$cloud_provider"
